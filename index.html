@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F3F5F8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="PLZ-Check">
+<meta name="robots" content="noindex, nofollow">
+<title>GENERAL PLZ-Check – Wer betreut diese Postleitzahl?</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121826'/%3E%3Ctext x='32' y='41' font-family='-apple-system,Helvetica,Arial,sans-serif' font-size='24' font-weight='700' fill='%23fff' text-anchor='middle'%3EPLZ%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #F3F5F8;
+    --ink: #121826;
+    --ink-2: #5B6474;
+    --line: rgba(18, 24, 38, .14);
+    --card: #FFFFFF;
+    --card-ink: #121826;
+    --card-ink-2: #5B6474;
+    --btn: #121826;
+    --btn-ink: #FFFFFF;
+    --rc: #121826;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Farbe je Regionalcenter – die Seite nimmt beim Treffer die Farbe des RC an */
+  body[data-rc="Berlin"]     { --rc: #1F3FA8; }
+  body[data-rc="Hannover"]   { --rc: #0B6E7A; }
+  body[data-rc="Düsseldorf"] { --rc: #A3341D; }
+  body[data-rc="Frankfurt"]  { --rc: #5B2A86; }
+  body[data-rc="Stuttgart"]  { --rc: #1E6B3A; }
+  body[data-rc="München"]    { --rc: #B5651D; }
+  body.has-rc {
+    --bg: var(--rc);
+    --ink: #FFFFFF;
+    --ink-2: rgba(255, 255, 255, .74);
+    --line: rgba(255, 255, 255, .28);
+    --card: rgba(255, 255, 255, .14);
+    --card-ink: #FFFFFF;
+    --card-ink-2: rgba(255, 255, 255, .78);
+    --btn: #FFFFFF;
+    --btn-ink: var(--rc);
+  }
+
+  * { box-sizing: border-box; }
+  html { height: 100%; -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color .35s ease, color .35s ease;
+    padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bottom) + 28px);
+  }
+  a { color: inherit; }
+  button { font: inherit; }
+
+  .app { max-width: 480px; margin: 0 auto; }
+
+  .top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
+  .brand { font-weight: 800; letter-spacing: .18em; font-size: 14px; }
+  .brand-sub { color: var(--ink-2); font-size: 14px; }
+
+  .search-label { display: block; font-size: 15px; color: var(--ink-2); margin: 0 0 6px 2px; }
+  .field { position: relative; }
+  #plz {
+    width: 100%;
+    display: block;
+    border: 0;
+    border-bottom: 2px solid var(--line);
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 64px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    line-height: 1.1;
+    padding: 6px 56px 10px 2px;
+    outline: none;
+    -webkit-appearance: none;
+    font-variant-numeric: tabular-nums;
+    caret-color: var(--ink);
+  }
+  #plz::placeholder { color: var(--line); font-weight: 600; }
+  #plz:focus { border-bottom-color: var(--ink); }
+  #clear {
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 1px solid var(--line); background: transparent; color: var(--ink-2);
+    font-size: 22px; line-height: 1; cursor: pointer; display: none;
+  }
+  #clear.show { display: block; }
+  .hint { margin: 10px 2px 0; color: var(--ink-2); font-size: 15px; min-height: 1.4em; }
+
+  .result { margin-top: 26px; }
+  .card {
+    background: var(--card);
+    color: var(--card-ink);
+    border-radius: 22px;
+    padding: 22px 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 2px rgba(18, 24, 38, .06);
+  }
+  body.has-rc .card { box-shadow: none; }
+  .role { font-size: 15px; color: var(--card-ink-2); margin-bottom: 4px; }
+  .name { font-size: 38px; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; margin: 0 0 6px; overflow-wrap: anywhere; }
+  .sub { color: var(--card-ink-2); font-size: 16px; }
+  .sub + .sub { margin-top: 2px; }
+  .actions { display: flex; gap: 10px; margin-top: 18px; }
+  .btn {
+    flex: 1 1 0; min-height: 60px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; padding: 10px 12px;
+    background: var(--btn); color: var(--btn-ink);
+    border-radius: 16px; text-decoration: none; font-weight: 700; font-size: 17px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn small { font-weight: 500; font-size: 13px; opacity: .8; font-variant-numeric: tabular-nums; }
+  .btn:active { opacity: .85; }
+
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .row:first-child { border-top: 0; padding-top: 0; }
+  .row:last-child { padding-bottom: 0; }
+  .rname { font-size: 19px; font-weight: 600; }
+  .mini { display: flex; gap: 8px; flex-shrink: 0; }
+  .ic {
+    width: 46px; height: 46px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--btn); color: var(--btn-ink); text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .ic:active { opacity: .85; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 7px 13px; font-size: 15px; font-weight: 600; }
+
+  .notice { padding: 18px 20px; border-radius: 18px; background: var(--card); color: var(--card-ink); }
+  .notice strong { display: block; font-size: 20px; margin-bottom: 6px; }
+  .notice p { margin: 0; color: var(--card-ink-2); }
+
+  .foot { margin-top: 36px; }
+  #toggle-list {
+    background: transparent; border: 1px solid var(--line); color: var(--ink);
+    border-radius: 999px; padding: 10px 16px; font-size: 15px; cursor: pointer;
+  }
+  #list { margin-top: 14px; }
+  .grp { padding: 12px 0; border-top: 1px solid var(--line); }
+  .grp-name { font-weight: 700; font-size: 17px; }
+  .grp-rc { color: var(--ink-2); font-size: 14px; }
+  .grp-ranges { font-size: 15px; color: var(--ink-2); margin-top: 4px; font-variant-numeric: tabular-nums; line-height: 1.6; }
+  .stand { margin: 22px 2px 0; color: var(--ink-2); font-size: 13px; }
+
+  .reveal { animation: reveal .3s ease both; }
+  @keyframes reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    body { transition: none; }
+    .reveal { animation: none; }
+  }
+  @media (max-width: 360px) {
+    #plz { font-size: 54px; }
+    .name { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="top">
+    <div class="brand">GENERAL</div>
+    <div class="brand-sub">PLZ-Check Komfortklima</div>
+  </header>
+
+  <section class="search">
+    <label class="search-label" for="plz">Postleitzahl eingeben</label>
+    <div class="field">
+      <input id="plz" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="5"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+             placeholder="PLZ" aria-describedby="hint" enterkeyhint="done">
+      <button id="clear" type="button" aria-label="Eingabe löschen">&times;</button>
+    </div>
+    <p id="hint" class="hint">Das Ergebnis erscheint beim Tippen.</p>
+  </section>
+
+  <section id="result" class="result" aria-live="polite"></section>
+
+  <footer class="foot">
+    <button id="toggle-list" type="button" aria-expanded="false">Alle Gebiete anzeigen</button>
+    <div id="list" hidden></div>
+    <p class="stand" id="stand"></p>
+  </footer>
+</main>
+
+<script>
+/*DATA-START*/var DATA={"stand":"02.03.26","built":"2026-10-08","ranges":[{"from":1000,"to":3999,"sales":"Steve Schultze","rc":"Berlin","kfm":"Sabine Petry","tech":"Heiko Wilms"},{"from":4000,"to":9999,"sales":"Steve Schultze","rc":"Berlin","kfm":"Sabine Petry","tech":"Heiko Wilms"},{"from":10000,"to":17999,"sales":"Steve Schultze","rc":"Berlin","kfm":"Sabine Petry","tech":"Heiko Wilms"},{"from":18000,"to":18999,"sales":"Jan Levin","rc":"Hannover","kfm":"Josip Dumancic","tech":"Heiko Wilms"},{"from":19000,"to":25999,"sales":"Jan Levin","rc":"Hannover","kfm":"Josip Dumancic","tech":"Heiko Wilms"},{"from":26000,"to":26999,"sales":"Jan Levin","rc":"Hannover","kfm":"Josip Dumancic","tech":"Heiko Wilms"},{"from":27000,"to":29999,"sales":"Jan Levin","rc":"Hannover","kfm":"Josip Dumancic","tech":"Heiko Wilms"},{"from":30000,"to":33999,"sales":"Jan Levin","rc":"Hannover","kfm":"Josip Dumancic","tech":"Heiko Wilms"},{"from":34000,"to":34339,"sales":"Daniel Schmidt","rc":"Frankfurt","kfm":"Ulrike Lidke","tech":"Lars Hofmann"},{"from":34340,"to":34449,"sales":"Jan Levin","rc":"Hannover","kfm":"Josip Dumancic","tech":"Heiko Wilms"},{"from":34450,"to":36399,"sales":"Daniel Schmidt","rc":"Frankfurt","kfm":"Ulrike Lidke","tech":"Lars Hofmann"},{"from":36400,"to":36999,"sales":"Dieter Uebelmann","rc":"München","kfm":"Fabio Palillo","tech":"Mahir von Stransky"},{"from":37000,"to":37199,"sales":"Jan Levin","rc":"Hannover","kfm":"Josip Dumancic","tech":"Heiko Wilms"},{"from":37200,"to":37299,"sales":"Daniel Schmidt","rc":"Frankfurt","kfm":"Ulrike Lidke","tech":"Lars Hofmann"},{"from":37300,"to":38999,"sales":"Jan Levin","rc":"Hannover","kfm":"Josip Dumancic","tech":"Heiko Wilms"},{"from":39000,"to":39999,"sales":"Steve Schultze","rc":"Berlin","kfm":"Sabine Petry","tech":"Heiko Wilms"},{"from":40000,"to":40699,"sales":"Carsten Ziegler","rc":"Düsseldorf","kfm":"Jörg Kuballa","tech":"Ingo Meier"},{"from":40700,"to":41999,"sales":"Steffen Jeromin","rc":"Düsseldorf","kfm":"Jörg Kuballa","tech":"Ingo Meier"},{"from":42000,"to":48999,"sales":"Carsten Ziegler","rc":"Düsseldorf","kfm":"Ulrike Lidke","tech":"Ingo Meier"},{"from":49000,"to":49699,"sales":"Jan Levin","rc":"Hannover","kfm":"Josip Dumancic","tech":"Heiko Wilms"},{"from":49700,"to":49999,"sales":"Carsten Ziegler","rc":"Düsseldorf","kfm":"Ulrike Lidke","tech":"Ingo Meier"},{"from":50000,"to":53399,"sales":"Steffen Jeromin","rc":"Düsseldorf","kfm":"Jörg Kuballa","tech":"Ingo Meier"},{"from":53400,"to":53599,"sales":"Daniel Schmidt","rc":"Frankfurt","kfm":"Ulrike Lidke","tech":"Lars Hofmann"},{"from":53700,"to":53999,"sales":"Steffen Jeromin","rc":"Düsseldorf","kfm":"Jörg Kuballa","tech":"Ingo Meier"},{"from":54000,"to":55999,"sales":"Michael Große-Hartlage","rc":"Frankfurt","kfm":"Eva Fincias","tech":"Lars Hofmann"},{"from":56000,"to":56999,"sales":"Daniel Schmidt","rc":"Frankfurt","kfm":"Ulrike Lidke","tech":"Lars Hofmann"},{"from":57000,"to":57499,"sales":"Steffen Jeromin","rc":"Düsseldorf","kfm":"Jörg Kuballa","tech":"Ingo Meier"},{"from":57500,"to":57999,"sales":"Daniel Schmidt","rc":"Frankfurt","kfm":"Ulrike Lidke","tech":"Lars Hofmann"},{"from":58000,"to":59999,"sales":"Carsten Ziegler","rc":"Düsseldorf","kfm":"Ulrike Lidke","tech":"Ingo Meier"},{"from":60000,"to":62999,"sales":"Daniel Schmidt","rc":"Frankfurt","kfm":"Ulrike Lidke","tech":"Lars Hofmann"},{"from":63000,"to":69999,"sales":"Michael Große-Hartlage","rc":"Frankfurt","kfm":"Eva Fincias","tech":"Lars Hofmann"},{"from":70000,"to":71079,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":71080,"to":71105,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":71106,"to":71109,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":71110,"to":71119,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":71120,"to":71125,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":71126,"to":71133,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":71134,"to":71138,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":71139,"to":71199,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":71200,"to":71999,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":72000,"to":73059,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":73060,"to":73086,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":73087,"to":73094,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":73095,"to":73097,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":73098,"to":73098,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":73099,"to":73099,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":73100,"to":73199,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":73200,"to":73299,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":73300,"to":73599,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":73600,"to":74699,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":74700,"to":74999,"sales":"Michael Große-Hartlage","rc":"Frankfurt","kfm":"Eva Fincias","tech":"Lars Hofmann"},{"from":75000,"to":75391,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":75392,"to":75393,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":75394,"to":76309,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":76310,"to":76319,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":76320,"to":76329,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":76330,"to":76336,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":76337,"to":76358,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":76359,"to":76599,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":76600,"to":76719,"sales":"Marco Fantasia","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":76720,"to":76999,"sales":"Michael Große-Hartlage","rc":"Frankfurt","kfm":"Eva Fincias","tech":"Lars Hofmann"},{"from":77000,"to":79999,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":80000,"to":87999,"sales":"Florian Scharpf","rc":"München","kfm":"Fabio Palillo","tech":"Mahir von Stransky"},{"from":88000,"to":88099,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":88100,"to":88199,"sales":"Florian Scharpf","rc":"München","kfm":"Fabio Palillo","tech":"Jürgen Kunzi"},{"from":88200,"to":89299,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":89300,"to":89449,"sales":"Florian Scharpf","rc":"München","kfm":"Fabio Palillo","tech":"Mahir von Stransky"},{"from":89500,"to":89999,"sales":"Kim Bernhardt","rc":"Stuttgart","kfm":"Sabrina Alter","tech":"Jürgen Kunzi"},{"from":90000,"to":97799,"sales":"Dieter Uebelmann","rc":"München","kfm":"Fabio Palillo","tech":"Mahir von Stransky"},{"from":97800,"to":97999,"sales":"Michael Große-Hartlage","rc":"Frankfurt","kfm":"Eva Fincias","tech":"Lars Hofmann"},{"from":98000,"to":98999,"sales":"Dieter Uebelmann","rc":"München","kfm":"Fabio Palillo","tech":"Mahir von Stransky"},{"from":99000,"to":99999,"sales":"Steve Schultze","rc":"Berlin","kfm":"Sabine Petry","tech":"Heiko Wilms"}],"contacts":{"Benjamin Osswald":{"tel":null,"telDisplay":null,"mail":"benjamin.osswald@de.generalww.com","rc":"Frankfurt"},"Carsten Ziegler":{"tel":"+4921191315316","telDisplay":"0211 91315316","mail":"carsten.ziegler@de.generalww.com","rc":"Düsseldorf"},"Daniel Schmidt":{"tel":"+4917616193093","telDisplay":"0176 16193093","mail":"daniel.schmidt@de.generalww.com","rc":"Frankfurt"},"Dieter Uebelmann":{"tel":"+4989453561009","telDisplay":"089 453561009","mail":"dieter.uebelmann@de.generalww.com","rc":"München"},"Fabio Palillo":{"tel":"+4989453561003","telDisplay":"089 453561003","mail":"fabio.palillo@de.generalww.com","rc":"München"},"Florian Scharpf":{"tel":"+4917616193065","telDisplay":"0176 16193065","mail":"florian.scharpf@de.generalww.com","rc":"München"},"Heiko Wilms":{"tel":null,"telDisplay":null,"mail":"Heiko.wilms@de.generalww.com","rc":"Hannover"},"Ingo Meier":{"tel":"+4921191315314","telDisplay":"0211 91315314","mail":"ingo.meier@de.generalww.com","rc":"Düsseldorf"},"Jan Levin":{"tel":"+4917616193110","telDisplay":"0176 16193110","mail":"jan.levin@de.generalww.com","rc":"Hannover"},"Jörg Kuballa":{"tel":"+4921191315312","telDisplay":"0211 91315312","mail":"joerg.kuballa@de.generalww.com","rc":"Düsseldorf"},"Josip Dumancic":{"tel":null,"telDisplay":null,"mail":"josip.dumancic@de.generalww.com","rc":"Hannover"},"Jürgen Kunzi":{"tel":"+4971165206993","telDisplay":"0711 65206993","mail":"jürgen.kunzi@de.generalww.com","rc":"Stuttgart"},"Kim Bernhardt":{"tel":"+4971165206994","telDisplay":"0711 65206994","mail":"kim.bernhardt@de.generalww.com","rc":"Stuttgart"},"Mahir von Stransky":{"tel":"+4989453561010","telDisplay":"089 453561010","mail":"mahir.vonstransky@de.generalww.com","rc":"München"},"Marco Fantasia":{"tel":"+4971165206995","telDisplay":"0711 65206995","mail":"marco.fantasia@de.generalww.com","rc":"Stuttgart"},"Michael Große-Hartlage":{"tel":"+4961027797752","telDisplay":"06102 7797752","mail":"michael.große-hartlage@de.generalww.com","rc":"Frankfurt"},"Petra Moller":{"tel":"+4961027797751","telDisplay":"06102 7797751","mail":"petra.moller@de.generalww.com","rc":"Frankfurt"},"Sabine Petry":{"tel":"+4930587681841","telDisplay":"030 587681841","mail":"sabine.petry@de.generalww.com","rc":"Berlin"},"Sabrina Alter":{"tel":"+4971165206992","telDisplay":"0711 65206992","mail":"sabrina.alter@de.generalww.com","rc":"Stuttgart"},"Steffen Jeromin":{"tel":"+4921191315315","telDisplay":"0211 91315315","mail":"steffen.jeromin@de.generalww.com","rc":"Düsseldorf"},"Steve Schultze":{"tel":"+4930587681842","telDisplay":"030 587681842","mail":"steve.schultze@de.generalww.com","rc":"Berlin"},"Ulrike Lidke":{"tel":"+4921191315313","telDisplay":"0211 91315313","mail":"ulrike.lidke@de.generalww.com","rc":"Frankfurt"},"Eva Fincias":{"tel":"+4961027797751","telDisplay":"06102 7797751","mail":"eva.fincias@de.generalww.com","rc":"Frankfurt"},"Lars Hofmann":{"tel":"+4961027797754","telDisplay":"06102 7797754","mail":"lars.hofmann@de.generalww.com","rc":"Frankfurt"}}};/*DATA-END*/
+
+(function () {
+  'use strict';
+  var ranges = DATA.ranges;
+  var contacts = DATA.contacts;
+  var input = document.getElementById('plz');
+  var clearBtn = document.getElementById('clear');
+  var hint = document.getElementById('hint');
+  var result = document.getElementById('result');
+  var listBtn = document.getElementById('toggle-list');
+  var list = document.getElementById('list');
+  var standEl = document.getElementById('stand');
+  var body = document.body;
+
+  var ICON_TEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>';
+  var ICON_MAIL = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>';
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function pad(n) {
+    var s = String(n);
+    while (s.length < 5) s = '0' + s;
+    return s;
+  }
+  function contactFor(name) {
+    if (!name) return null;
+    var clean = name.replace(/^z\.Zt\.\s*/, '');
+    return contacts[clean] || null;
+  }
+  function findExact(n) {
+    for (var i = 0; i < ranges.length; i++) {
+      if (n >= ranges[i].from && n <= ranges[i].to) return ranges[i];
+    }
+    return null;
+  }
+  // So würde die Excel-Formel (VLOOKUP ohne FALSE) bei einer Lücke reagieren:
+  function excelFallback(n) {
+    var best = null;
+    for (var i = 0; i < ranges.length; i++) {
+      if (ranges[i].from <= n && (!best || ranges[i].from > best.from)) best = ranges[i];
+    }
+    return best;
+  }
+  function candidates(prefix) {
+    var k = prefix.length;
+    var span = Math.pow(10, 5 - k);
+    var lo = parseInt(prefix, 10) * span;
+    var hi = lo + span - 1;
+    var out = [], seen = {};
+    for (var i = 0; i < ranges.length; i++) {
+      var r = ranges[i];
+      if (r.to >= lo && r.from <= hi) {
+        if (!seen[r.sales]) { seen[r.sales] = r; out.push(r); }
+      }
+    }
+    return out;
+  }
+
+  function setRc(rc) {
+    if (rc) {
+      body.setAttribute('data-rc', rc);
+      body.className = 'has-rc';
+    } else {
+      body.removeAttribute('data-rc');
+      body.className = '';
+    }
+  }
+
+  function miniLinks(c) {
+    if (!c) return '';
+    var h = '';
+    if (c.tel) h += '<a class="ic" href="tel:' + esc(c.tel) + '" aria-label="Anrufen ' + esc(c.telDisplay) + '">' + ICON_TEL + '</a>';
+    if (c.mail) h += '<a class="ic" href="mailto:' + esc(c.mail) + '" aria-label="E-Mail an ' + esc(c.mail) + '">' + ICON_MAIL + '</a>';
+    return h;
+  }
+  function personRow(role, name) {
+    if (!name) return '';
+    var c = contactFor(name);
+    var sub = c ? (c.telDisplay ? c.telDisplay : (c.mail ? c.mail : '')) : 'keine Kontaktdaten in der Tabelle';
+    return '<div class="row"><div><div class="role">' + esc(role) + '</div><div class="rname">' + esc(name) + '</div>' +
+      (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + '</div><div class="mini">' + miniLinks(c) + '</div></div>';
+  }
+  function mainCard(r, label, areaText) {
+    var c = contactFor(r.sales);
+    var h = '<div class="card reveal">';
+    h += '<div class="role">' + esc(label) + '</div>';
+    h += '<div class="name">' + esc(r.sales) + '</div>';
+    h += '<div class="sub">Regionalcenter ' + esc(r.rc) + '</div>';
+    h += '<div class="sub">' + esc(areaText) + '</div>';
+    if (c && (c.tel || c.mail)) {
+      h += '<div class="actions">';
+      if (c.tel) h += '<a class="btn" href="tel:' + esc(c.tel) + '">Anrufen<small>' + esc(c.telDisplay) + '</small></a>';
+      if (c.mail) h += '<a class="btn" href="mailto:' + esc(c.mail) + '">E-Mail<small>schreiben</small></a>';
+      h += '</div>';
+    } else {
+      h += '<div class="sub">Keine Kontaktdaten in der Tabelle hinterlegt.</div>';
+    }
+    h += '</div>';
+    return h;
+  }
+
+  function render(value) {
+    var digits = value.replace(/\D/g, '').slice(0, 5);
+    clearBtn.className = digits ? 'show' : '';
+
+    if (!digits) {
+      setRc(null);
+      result.innerHTML = '';
+      hint.textContent = 'Das Ergebnis erscheint beim Tippen.';
+      return;
+    }
+
+    if (digits.length < 5) {
+      var cands = candidates(digits);
+      var suffix = digits + Array(6 - digits.length).join('x');
+      if (cands.length === 1) {
+        var r0 = cands[0];
+        setRc(r0.rc);
+        hint.textContent = 'Alle PLZ ' + suffix + ' liegen bei einem Verkäufer.';
+        result.innerHTML = mainCard(r0, 'Verkauf (Vorschau)', 'gilt für alle PLZ ' + suffix);
+      } else if (cands.length === 0) {
+        setRc(null);
+        hint.textContent = 'Für ' + suffix + ' ist nichts hinterlegt.';
+        result.innerHTML = '';
+      } else {
+        setRc(null);
+        hint.textContent = cands.length + ' mögliche Verkäufer – weiter tippen.';
+        var chips = '';
+        for (var i = 0; i < cands.length; i++) chips += '<span class="chip">' + esc(cands[i].sales) + '</span>';
+        result.innerHTML = '<div class="chips">' + chips + '</div>';
+      }
+      return;
+    }
+
+    var n = parseInt(digits, 10);
+    var r = findExact(n);
+    if (r) {
+      setRc(r.rc);
+      hint.textContent = 'PLZ ' + digits + ' ist zugeordnet.';
+      var h = mainCard(r, 'Verkauf', 'Gebiet ' + pad(r.from) + ' bis ' + pad(r.to));
+      h += '<div class="card reveal">';
+      h += personRow('Kfm. Innendienst', r.kfm);
+      h += personRow('Techn. Innendienst', r.tech);
+      h += '</div>';
+      result.innerHTML = h;
+    } else {
+      setRc(null);
+      hint.textContent = 'PLZ ' + digits + ' ist in der Tabelle nicht zugeordnet.';
+      var fb = excelFallback(n);
+      var h2 = '<div class="notice reveal"><strong>Keine Zuordnung für ' + digits + '</strong>';
+      if (fb) {
+        h2 += '<p>Diese PLZ liegt in einer Lücke der Tabelle. Die Excel-Formel würde hier ' + esc(fb.sales) +
+          ' (Regionalcenter ' + esc(fb.rc) + ', Gebiet bis ' + pad(fb.to) + ') anzeigen – bitte Zuordnung klären.</p>';
+      } else {
+        h2 += '<p>Die Tabelle beginnt bei ' + pad(ranges.length ? ranges[0].from : 0) + '.</p>';
+      }
+      h2 += '</div>';
+      result.innerHTML = h2;
+    }
+  }
+
+  function buildList() {
+    var groups = {}, order = [];
+    for (var i = 0; i < ranges.length; i++) {
+      var r = ranges[i];
+      if (!groups[r.sales]) { groups[r.sales] = { rc: r.rc, parts: [] }; order.push(r.sales); }
+      groups[r.sales].parts.push(pad(r.from) + '–' + pad(r.to));
+    }
+    order.sort();
+    var h = '';
+    for (var j = 0; j < order.length; j++) {
+      var g = groups[order[j]];
+      h += '<div class="grp"><div class="grp-name">' + esc(order[j]) + '</div><div class="grp-rc">Regionalcenter ' + esc(g.rc) + '</div>' +
+        '<div class="grp-ranges">' + esc(g.parts.join(', ')) + '</div></div>';
+    }
+    return h;
+  }
+
+  function onInput() {
+    var v = input.value.replace(/\D/g, '').slice(0, 5);
+    if (v !== input.value) input.value = v;
+    render(v);
+    if (v.length === 5) {
+      try { history.replaceState(null, '', '?plz=' + v); } catch (e) {}
+      setTimeout(function () { input.blur(); }, 150);
+    }
+  }
+
+  input.addEventListener('input', onInput);
+  input.addEventListener('focus', function () { setTimeout(function () { try { input.select(); } catch (e) {} }, 0); });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.keyCode === 13) input.blur();
+  });
+  clearBtn.addEventListener('click', function () {
+    input.value = '';
+    render('');
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    input.focus();
+  });
+  listBtn.addEventListener('click', function () {
+    var open = list.hasAttribute('hidden');
+    if (open) {
+      if (!list.innerHTML) list.innerHTML = buildList();
+      list.removeAttribute('hidden');
+      listBtn.textContent = 'Gebiete ausblenden';
+      listBtn.setAttribute('aria-expanded', 'true');
+    } else {
+      list.setAttribute('hidden', '');
+      listBtn.textContent = 'Alle Gebiete anzeigen';
+      listBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  var standText = 'Datenstand laut Excel: ' + (DATA.stand || 'unbekannt') + '. ';
+  standText += ranges.length + ' PLZ-Bereiche';
+  if (DATA.built) standText += ', Seite erzeugt am ' + DATA.built;
+  standEl.textContent = standText + '.';
+
+  // Deep-Link: index.html?plz=71229
+  var m = /[?&]plz=(\d{1,5})/.exec(location.search);
+  if (m) {
+    input.value = m[1];
+    render(m[1]);
+  } else {
+    input.focus();
+  }
+})();
+</script>
+</body>
+</html>
